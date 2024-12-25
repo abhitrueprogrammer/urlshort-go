@@ -3,14 +3,10 @@ package urlshort
 import (
 	"fmt"
 	"net/http"
+
+	"gopkg.in/yaml.v2"
 )
 
-// MapHandler will return an http.HandlerFunc (which also
-// implements http.Handler) that will attempt to map any
-// paths (keys in the map) to their corresponding URL (values
-// that each key in the map points to, in string format).
-// If the path is not provided in the map, then the fallback
-// http.Handler will be called instead.
 func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		dest, exist := pathsToUrls[r.URL.Path]
@@ -39,7 +35,26 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 //
 // See MapHandler to create a similar http.HandlerFunc via
 // a mapping of paths to urls.
+type URLMapping struct {
+    Source string 
+    Destination  string 
+}
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
-	// TODO: Implement this...
-	return nil, nil
+	var decodedYml []URLMapping
+
+	err := yaml.Unmarshal(yml, &decodedYml) 
+	if err != nil{
+		return nil, fmt.Errorf("error marshalling the yaml: %v", err);
+	}
+	sourceDestinationMap := ConvertYamlToMap(decodedYml)
+	return MapHandler(sourceDestinationMap, fallback),nil;
+}
+
+func ConvertYamlToMap(yml [] URLMapping) (map[string]string) {
+	sourceDestinationMap := make(map[string]string, 0)
+	for _, v := range yml {
+		sourceDestinationMap[v.Source] = v.Destination
+	}
+
+	return sourceDestinationMap
 }
